@@ -1,0 +1,7 @@
+syntax = "proto3";
+package tspchain.tspchain;
+
+option go_package = "github.com/tspnetwork/tspchain/x/tspchain/types";
+
+// Msg defines the Msg service.
+service Msg {}

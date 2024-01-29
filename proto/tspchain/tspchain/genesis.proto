@@ -1,0 +1,12 @@
+syntax = "proto3";
+package tspchain.tspchain;
+
+import "gogoproto/gogo.proto";
+import "tspchain/tspchain/params.proto";
+
+option go_package = "github.com/tspnetwork/tspchain/x/tspchain/types";
+
+// GenesisState defines the tspchain module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+}
