@@ -26,6 +26,7 @@ import (
 	snapshottypes "github.com/cosmos/cosmos-sdk/snapshots/types"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -36,10 +37,14 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+
 	// this line is used by starport scaffolding # root/moduleImport
 
 	"github.com/tspnetwork/tspchain/app"
 	appparams "github.com/tspnetwork/tspchain/app/params"
+
+	ethermintclient "github.com/evmos/ethermint/client"
+	ethermintserver "github.com/evmos/ethermint/server"
 )
 
 // NewRootCmd creates a new root command for a Cosmos SDK application
@@ -108,6 +113,9 @@ func initRootCmd(
 
 	gentxModule := app.ModuleBasics[genutiltypes.ModuleName].(genutil.AppModuleBasic)
 	rootCmd.AddCommand(
+		ethermintclient.ValidateChainID(
+			WrapInitCmd(app.DefaultNodeHome),
+		),
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome, gentxModule.GenTxValidator),
 		genutilcli.MigrateGenesisCmd(),
@@ -128,6 +136,12 @@ func initRootCmd(
 	a := appCreator{
 		encodingConfig,
 	}
+
+	opts := ethermintserver.StartOptions{
+		AppCreator:      a.newApp,
+		DefaultNodeHome: app.DefaultNodeHome,
+	}
+	ethermintserver.AddCommands(rootCmd, opts, a.appExport, addModuleInitFlags)
 
 	// add server commands
 	server.AddCommands(
@@ -368,4 +382,13 @@ func initAppConfig() (string, interface{}) {
 	customAppTemplate := serverconfig.DefaultConfigTemplate
 
 	return customAppTemplate, customAppConfig
+}
+
+// WrapInitCmd extends `genutilcli.InitCmd`.
+func WrapInitCmd(home string) *cobra.Command {
+	wrapCmd := genutilcli.InitCmd(module.NewBasicManager(), home)
+	wrapCmd.RunE = func(cmd *cobra.Command, args []string) error {
+		return genutilcli.InitCmd(app.ModuleBasics, home).RunE(cmd, args)
+	}
+	return wrapCmd
 }
