@@ -1,4 +1,4 @@
-# tspchain
+# Telegram Service Platform
 
 ![TSP_Logo_Badge_FullColor_resize](https://github.com/tspnetwork/tspchain/assets/157558765/525ca9c4-ab6e-447b-96ff-a4a419f2d9fa)
 
