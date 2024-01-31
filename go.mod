@@ -216,6 +216,8 @@ require (
 )
 
 replace (
+	// Use cosmos keyring
+	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
 	github.com/cosmos/cosmos-sdk => github.com/crypto-org-chain/cosmos-sdk v0.46.0-beta2.0.20240103063449-c887e863fae2
 	github.com/ethereum/go-ethereum => github.com/crypto-org-chain/go-ethereum v1.10.20-0.20231207063621-43cf32d91c3e
 	github.com/evmos/ethermint => github.com/crypto-org-chain/ethermint v0.6.1-0.20240122030949-2f3643bff8f9

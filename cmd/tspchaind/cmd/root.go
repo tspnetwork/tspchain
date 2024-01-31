@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	appparams "cosmossdk.io/simapp/params"
 	dbm "github.com/cometbft/cometbft-db"
 	tmcfg "github.com/cometbft/cometbft/config"
 	tmcli "github.com/cometbft/cometbft/libs/cli"
@@ -18,6 +20,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -33,25 +37,32 @@ import (
 	// this line is used by starport scaffolding # root/moduleImport
 
 	"github.com/tspnetwork/tspchain/app"
-	appparams "github.com/tspnetwork/tspchain/app/params"
 
 	ethermintclient "github.com/evmos/ethermint/client"
+	ethcfg "github.com/evmos/ethermint/cmd/config"
+	"github.com/evmos/ethermint/crypto/hd"
 	ethermintserver "github.com/evmos/ethermint/server"
 	serverconfig "github.com/evmos/ethermint/server/config"
 	ethermint "github.com/evmos/ethermint/types"
+
+	tspconfig "github.com/tspnetwork/tspchain/cmd/tspchaind/config"
 )
+
+const AddrLen = 20
 
 // NewRootCmd creates a new root command for a Cosmos SDK application
 func NewRootCmd() (*cobra.Command, appparams.EncodingConfig) {
 	encodingConfig := app.MakeEncodingConfig()
 	initClientCtx := client.Context{}.
-		WithCodec(encodingConfig.Marshaler).
+		WithCodec(encodingConfig.Codec).
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
 		WithTxConfig(encodingConfig.TxConfig).
 		WithLegacyAmino(encodingConfig.Amino).
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
+		WithBroadcastMode(flags.BroadcastSync).
 		WithHomeDir(app.DefaultNodeHome).
+		WithKeyringOptions(hd.EthSecp256k1Option()).
 		WithViper("")
 
 	rootCmd := &cobra.Command{
@@ -102,8 +113,12 @@ func initRootCmd(
 	rootCmd *cobra.Command,
 	encodingConfig appparams.EncodingConfig,
 ) {
-	// Set config
-	initSDKConfig()
+	// Set and seal config
+	cfg := sdk.GetConfig()
+	tspconfig.SetBech32Prefixes(cfg)
+	ethcfg.SetBip44CoinType(cfg)
+	cfg.SetAddressVerifier(VerifyAddressFormat)
+	cfg.Seal()
 
 	gentxModule := app.ModuleBasics[genutiltypes.ModuleName].(genutil.AppModuleBasic)
 	rootCmd.AddCommand(
@@ -301,4 +316,18 @@ func WrapInitCmd(home string) *cobra.Command {
 		return genutilcli.InitCmd(app.ModuleBasics, home).RunE(cmd, args)
 	}
 	return wrapCmd
+}
+
+// VerifyAddressFormat verifies whether the address is compatible with Ethereum
+func VerifyAddressFormat(bz []byte) error {
+	if len(bz) == 0 {
+		return fmt.Errorf("invalid address; cannot be empty: %w", sdkerrors.ErrUnknownAddress)
+	}
+	if len(bz) != AddrLen {
+		return fmt.Errorf(
+			"invalid address length; got: %d, expect: %d, %w", len(bz), AddrLen, sdkerrors.ErrUnknownAddress,
+		)
+	}
+
+	return nil
 }
