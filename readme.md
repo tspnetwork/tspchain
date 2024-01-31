@@ -1,4 +1,7 @@
 # tspchain
+
+![TSP_Logo_Badge_FullColor](https://github.com/tspnetwork/tspchain/assets/157558765/22902862-618f-4bb8-9dc0-99480e68524e)
+
 **tspchain** is a blockchain built using Cosmos SDK and Tendermint and created with [Ignite CLI](https://ignite.com/cli).
 
 ## Get started
